@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tetris.Core/Tetris.Core.csproj" />
+    <Project Path="src/Tetris.Desktop/Tetris.Desktop.csproj" />
+  </Folder>
+</Solution>

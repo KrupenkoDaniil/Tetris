@@ -1,0 +1,88 @@
+<div id="tetris-contrast-palettes" aria-label="Контрастные палитры фигур на пяти уровнях">
+  <style>
+    #tetris-contrast-palettes {
+      display: grid;
+      gap: calc(var(--font-size-base) * .75);
+      color: var(--foreground);
+    }
+    #tetris-contrast-palettes .palette-row {
+      display: grid;
+      align-items: center;
+      gap: calc(var(--font-size-base) * .35);
+    }
+    #tetris-contrast-palettes .palette-colors {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: calc(var(--font-size-base) * .25);
+    }
+    #tetris-contrast-palettes .palette-color {
+      display: grid;
+      min-width: 0;
+      gap: calc(var(--font-size-base) * .25);
+      text-align: center;
+    }
+    #tetris-contrast-palettes .field-sample {
+      display: grid;
+      place-items: center;
+      block-size: 1.8em;
+      background-color: #121824;
+    }
+    #tetris-contrast-palettes .field-sample::after {
+      content: "";
+      inline-size: 78%;
+      block-size: 66%;
+      background-color: var(--sample);
+      box-shadow: inset 0 0 0 2px var(--sample-edge, transparent);
+    }
+    @media (min-width: 530px) {
+      #tetris-contrast-palettes .palette-row {
+        grid-template-columns: minmax(10em, .75fr) minmax(0, 2fr);
+      }
+    }
+  </style>
+  <div class="palette-row">
+    <p>1 · Зелёный</p>
+    <div class="palette-colors">
+      <div class="palette-color"><span class="field-sample" style="--sample: #25BC68" aria-hidden="true"></span><code>#25BC68</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #4ADE80" aria-hidden="true"></span><code>#4ADE80</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #86EFAC" aria-hidden="true"></span><code>#86EFAC</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #A3E635" aria-hidden="true"></span><code>#A3E635</code></div>
+    </div>
+  </div>
+  <div class="palette-row">
+    <p>2 · Холодный синий и белый</p>
+    <div class="palette-colors">
+      <div class="palette-color"><span class="field-sample" style="--sample: #60A5FA" aria-hidden="true"></span><code>#60A5FA</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #38BDF8" aria-hidden="true"></span><code>#38BDF8</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #A5D8FF" aria-hidden="true"></span><code>#A5D8FF</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #F3F8FF" aria-hidden="true"></span><code>#F3F8FF</code></div>
+    </div>
+  </div>
+  <div class="palette-row">
+    <p>3 · Оранжевый и красный</p>
+    <div class="palette-colors">
+      <div class="palette-color"><span class="field-sample" style="--sample: #FFD38E" aria-hidden="true"></span><code>#FFD38E</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #FFAA48" aria-hidden="true"></span><code>#FFAA48</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #FF8738" aria-hidden="true"></span><code>#FF8738</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #FF6A5A" aria-hidden="true"></span><code>#FF6A5A</code></div>
+    </div>
+  </div>
+  <div class="palette-row">
+    <p>4 · Фиолетовый и розовый</p>
+    <div class="palette-colors">
+      <div class="palette-color"><span class="field-sample" style="--sample: #AF96FF" aria-hidden="true"></span><code>#AF96FF</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #D8ADFF" aria-hidden="true"></span><code>#D8ADFF</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #F77EC9" aria-hidden="true"></span><code>#F77EC9</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #FFB9E4" aria-hidden="true"></span><code>#FFB9E4</code></div>
+    </div>
+  </div>
+  <div class="palette-row">
+    <p>5 · Чёрный, серебро и золото</p>
+    <div class="palette-colors">
+      <div class="palette-color"><span class="field-sample" style="--sample: #08090B; --sample-edge: #B9C5D3" aria-hidden="true"></span><code>#08090B</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #B9C5D3" aria-hidden="true"></span><code>#B9C5D3</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #EDF2F7" aria-hidden="true"></span><code>#EDF2F7</code></div>
+      <div class="palette-color"><span class="field-sample" style="--sample: #F6C34E" aria-hidden="true"></span><code>#F6C34E</code></div>
+    </div>
+  </div>
+</div>
