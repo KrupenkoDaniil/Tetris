@@ -15,7 +15,7 @@ namespace Tetris.Desktop;
 public partial class MainWindow : Window
 {
     private static readonly CultureInfo Russian = CultureInfo.GetCultureInfo("ru-RU");
-    private readonly GameController _controller = new(new GameSession(), new InMemoryRecordStore());
+    private readonly GameController _controller = new(new GameSession(), new FileRecordStore());
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
     private nint _windowHandle;
     private long _lastUpdate;
@@ -60,6 +60,14 @@ public partial class MainWindow : Window
 
     private void OnPause(object sender, RoutedEventArgs e) => Pause();
     private void OnDeactivated(object? sender, EventArgs e) => Pause();
+
+    private void OnMinimizeWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private void OnToggleMaximizedWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -157,6 +165,12 @@ public partial class MainWindow : Window
         Refresh(moveFocus: true);
     }
 
+    private void OnRetryRecords(object sender, RoutedEventArgs e)
+    {
+        _controller.RetryRecords();
+        Refresh(moveFocus: true);
+    }
+
     private void OnRecordTabChanged(object sender, RoutedEventArgs e)
     {
         if (IsLoaded && _controller.Screen == AppScreen.Records)
@@ -234,6 +248,7 @@ public partial class MainWindow : Window
         ResultsScreen.Visibility = VisibilityFor(screen == AppScreen.Results);
         RecordsScreen.Visibility = VisibilityFor(screen == AppScreen.Records);
         RefreshSoundButton();
+        RefreshRecordStatus(screen);
 
         switch (screen)
         {
@@ -277,6 +292,20 @@ public partial class MainWindow : Window
 
     private void RefreshSoundButton() =>
         SoundButton.Content = _controller.IsSoundEnabled ? "Звук: включён" : "Звук: выключен";
+
+    private void RefreshRecordStatus(AppScreen screen)
+    {
+        var status = screen switch
+        {
+            AppScreen.Game => null,
+            _ when _controller.HasPendingRecords => "Есть несохранённые результаты.",
+            AppScreen.Records when _controller.RecordsLoadFailed => "Не удалось загрузить таблицу рекордов.",
+            _ => null
+        };
+
+        RecordStatusText.Text = status ?? string.Empty;
+        RecordStatusPanel.Visibility = VisibilityFor(status is not null);
+    }
 
     private void RefreshRecords()
     {

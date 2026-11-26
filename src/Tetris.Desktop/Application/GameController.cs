@@ -1,3 +1,4 @@
+using System.IO;
 using Tetris.Core.Gameplay;
 using Tetris.Core.Records;
 
@@ -19,6 +20,7 @@ internal enum ControlScheme
 
 internal sealed class GameController(IGameSession session, IRecordStore records)
 {
+    private readonly Queue<RecordEntry> _pendingRecords = new();
     private AppScreen _recordsReturnScreen;
     private Guid _gameId;
 
@@ -30,6 +32,8 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
     public bool IsGameRunning => Screen == AppScreen.Game && Snapshot.Phase == GamePhase.Running;
     public IReadOnlyList<RecordEntry> RecentRecords => records.Recent;
     public IReadOnlyList<RecordEntry> TopRecords => records.Top;
+    public bool HasPendingRecords => _pendingRecords.Count != 0;
+    public bool RecordsLoadFailed { get; private set; }
 
     public void Start()
     {
@@ -62,9 +66,17 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
     {
         _recordsReturnScreen = Screen;
         Screen = AppScreen.Records;
+        LoadRecords();
     }
 
     public void CloseRecords() => Screen = _recordsReturnScreen;
+
+    public void RetryRecords()
+    {
+        SavePendingRecords();
+        if (Screen == AppScreen.Records)
+            LoadRecords();
+    }
 
     public void ToggleSound() => IsSoundEnabled = !IsSoundEnabled;
 
@@ -90,8 +102,38 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
     {
         if (Snapshot.Phase == GamePhase.Lost && Snapshot.Result is { } result)
         {
-            records.Save(new RecordEntry(_gameId, DateTimeOffset.Now, result));
             Screen = AppScreen.Results;
+            _pendingRecords.Enqueue(new RecordEntry(_gameId, DateTimeOffset.Now, result));
+            SavePendingRecords();
+        }
+    }
+
+    private void SavePendingRecords()
+    {
+        while (_pendingRecords.TryPeek(out var entry))
+        {
+            try
+            {
+                records.Save(entry);
+                _pendingRecords.Dequeue();
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return;
+            }
+        }
+    }
+
+    private void LoadRecords()
+    {
+        try
+        {
+            records.Reload();
+            RecordsLoadFailed = false;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            RecordsLoadFailed = true;
         }
     }
 }

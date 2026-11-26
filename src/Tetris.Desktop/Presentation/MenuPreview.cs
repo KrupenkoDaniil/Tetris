@@ -6,7 +6,7 @@ internal static class MenuPreview
 {
     public static GameSnapshot Snapshot { get; } = new(
         GamePhase.Ready, 1, 0, 0, CreateSampleField(),
-        new PieceSnapshot(2, 3, 4, PieceCatalog.GetMask(2)), null);
+        new PieceSnapshot(2, 3, 4, PieceCatalog.GetMask(7)), null);
 
     private static IReadOnlyList<BoardCell> CreateSampleField()
     {

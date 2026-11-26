@@ -7,7 +7,8 @@ namespace Tetris.Desktop.Presentation;
 public sealed class CellSurface : FrameworkElement
 {
     private static readonly Brush Field = CreateBrush("#121824");
-    private static readonly Brush GridLine = CreateBrush("#232E40");
+    private static readonly Brush GridLine = CreateBrush("#373D46");
+    private static readonly Brush FieldBorder = CreateBrush("#828282");
     private static readonly Brush Silver = CreateBrush("#B9C5D3");
     private static readonly Brush[][] Palettes =
     [
@@ -70,7 +71,7 @@ public sealed class CellSurface : FrameworkElement
         var height = rows * size;
         var x = Math.Floor((ActualWidth - width) / 2);
         var y = Math.Floor((ActualHeight - height) / 2);
-        drawing.DrawRectangle(GridLine, null, new Rect(x - 1, y - 1, width + 2, height + 2));
+        drawing.DrawRectangle(FieldBorder, null, new Rect(x - 1, y - 1, width + 2, height + 2));
         drawing.DrawRectangle(Field, null, new Rect(x, y, width, height));
 
         for (var col = 1; col < columns; col++)

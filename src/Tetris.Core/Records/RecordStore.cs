@@ -10,5 +10,9 @@ public interface IRecordStore
 
     IReadOnlyList<RecordEntry> Top { get; }
 
+    void Reload()
+    {
+    }
+
     void Save(RecordEntry entry);
 }

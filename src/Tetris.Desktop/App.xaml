@@ -3,16 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="/Tetris.Desktop;component/MainWindow.xaml">
     <Application.Resources>
-        <SolidColorBrush x:Key="WindowBrush" Color="#0C1018"/>
-        <SolidColorBrush x:Key="PanelBrush" Color="#121824"/>
-        <SolidColorBrush x:Key="RaisedBrush" Color="#192333"/>
-        <SolidColorBrush x:Key="StrokeBrush" Color="#334258"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#F0F4FB"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#A8B7CA"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#A3E635"/>
-        <SolidColorBrush x:Key="AccentTextBrush" Color="#111C08"/>
-        <SolidColorBrush x:Key="SelectedBrush" Color="#283823"/>
-        <SolidColorBrush x:Key="OverlayBrush" Color="#D80C1018"/>
+        <SolidColorBrush x:Key="WindowBrush" Color="#262626"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#2C2C2C"/>
+        <SolidColorBrush x:Key="RaisedBrush" Color="#373737"/>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#434343"/>
+        <SolidColorBrush x:Key="StrokeBrush" Color="#828282"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#F2F2F2"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#C8C8C8"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#ACE68B"/>
+        <SolidColorBrush x:Key="SelectedBrush" Color="#41483C"/>
+        <SolidColorBrush x:Key="OverlayBrush" Color="#C4191919"/>
 
         <Style x:Key="MutedText" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
@@ -22,13 +22,11 @@
             <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
         </Style>
 
         <Style TargetType="Button">
             <Setter Property="MinHeight" Value="44"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,7"/>
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="Background" Value="{StaticResource RaisedBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
@@ -37,7 +35,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Surface" CornerRadius="7"
+                        <Border x:Name="Surface"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
@@ -53,7 +51,7 @@
                                 <Setter TargetName="Surface" Property="Opacity" Value="0.75"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource TextBrush}"/>
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                                 <Setter TargetName="Surface" Property="BorderThickness" Value="2"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -66,9 +64,8 @@
         </Style>
 
         <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
         <Style x:Key="Choice" TargetType="RadioButton">
@@ -81,7 +78,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Surface" CornerRadius="6" Padding="8,5" BorderThickness="1"
+                        <Border x:Name="Surface" Padding="8,5" BorderThickness="1"
                                 Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>

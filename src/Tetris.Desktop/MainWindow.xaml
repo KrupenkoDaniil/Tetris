@@ -8,17 +8,24 @@
         Foreground="{StaticResource TextBrush}" FontFamily="Segoe UI" FontSize="15"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         Loaded="OnLoaded" Closed="OnClosed" Deactivated="OnDeactivated" PreviewKeyDown="OnPreviewKeyDown">
-    <Grid x:Name="Root" Margin="24,14,24,24" Focusable="True">
+    <Grid x:Name="Root" Margin="24,12,24,18" Focusable="True">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Margin="0,0,0,16">
-            <TextBlock Text="Падающие фигуры" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Button x:Name="SoundButton" HorizontalAlignment="Right" Click="OnToggleSound"/>
-        </Grid>
+        <Button x:Name="SoundButton" HorizontalAlignment="Right" Margin="0,0,0,12" Click="OnToggleSound"/>
 
-        <Grid Grid.Row="1">
+        <Border Grid.Row="1" x:Name="RecordStatusPanel" Style="{StaticResource Panel}"
+                Visibility="Collapsed" Padding="12,8" Margin="0,0,0,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" x:Name="RetryRecordsButton"
+                        Content="Повторить" Margin="12,0,0,0" Click="OnRetryRecords"/>
+                <TextBlock x:Name="RecordStatusText" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
             <Grid x:Name="MenuScreen">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="5*"/>
@@ -26,7 +33,7 @@
                 </Grid.ColumnDefinitions>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="5,4,24,4">
                     <StackPanel VerticalAlignment="Center" MaxWidth="390">
-                        <TextBlock Text="Новая партия" FontSize="42" FontWeight="Bold" Margin="0,0,0,9"/>
+                        <TextBlock Text="Новая партия" FontSize="26" FontWeight="SemiBold" Margin="0,0,0,9"/>
                         <TextBlock Style="{StaticResource MutedText}" Text="Заполняй строки, чтобы набирать очки. Каждые 10 очищенных строк повышают уровень." Margin="0,0,0,24"/>
                         <TextBlock Text="Начальный уровень" FontWeight="SemiBold" Margin="0,0,0,9"/>
                         <UniformGrid Columns="5" Margin="0,0,0,18">
@@ -42,11 +49,11 @@
                             <RadioButton x:Name="MenuHomeRow" Style="{StaticResource Choice}" GroupName="MenuScheme" Tag="HomeRow" Content="J / ; · K / L" Checked="OnSchemeSelected"/>
                         </UniformGrid>
                         <Button x:Name="StartButton" Style="{StaticResource PrimaryButton}" Content="Начать партию"
-                                MinHeight="50" Click="OnStart"/>
+                                Click="OnStart"/>
                         <Button x:Name="MenuRecordsButton" Content="Таблица рекордов" Margin="0,8,0,0" Click="OnOpenRecords"/>
                     </StackPanel>
                 </ScrollViewer>
-                <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="20">
+                <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -61,40 +68,40 @@
                 </Border>
             </Grid>
 
-            <Grid x:Name="GameScreen" Visibility="Collapsed">
+            <Grid x:Name="GameScreen" Visibility="Collapsed" MaxWidth="700">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="230"/>
                 </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource Panel}" Padding="16" Margin="0,0,16,0">
-                    <views:CellSurface x:Name="GameField" AutomationProperties.Name="Игровое поле"/>
-                </Border>
-                <StackPanel Grid.Column="1" x:Name="GameSidebar">
-                    <Border Style="{StaticResource Panel}" Padding="17" Margin="0,0,0,10">
-                        <StackPanel>
-                            <TextBlock Text="Счёт" Style="{StaticResource MutedText}"/>
-                            <TextBlock x:Name="ScoreLabel" FontSize="38" FontWeight="Bold" Margin="0,2,0,10"/>
-                            <UniformGrid Columns="2">
-                                <StackPanel>
-                                    <TextBlock Text="Уровень" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="LevelLabel" FontSize="23" FontWeight="SemiBold"/>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Строки" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="ClearedLabel" FontSize="23" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Panel}" Padding="17" Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="Следующая фигура" FontWeight="SemiBold"/>
-                            <views:CellSurface x:Name="PiecePreview" Height="100" Margin="0,7,0,0" AutomationProperties.Name="Следующая фигура"/>
-                        </StackPanel>
-                    </Border>
-                    <Button x:Name="PauseButton" Content="Пауза · Esc" Click="OnPause"/>
-                    <TextBlock x:Name="GameControlsLabel" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
-                </StackPanel>
+                <views:CellSurface x:Name="GameField" Margin="0,0,18,0" AutomationProperties.Name="Игровое поле"/>
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <StackPanel x:Name="GameSidebar" Margin="0,2,0,0">
+                        <TextBlock Text="Следующая фигура" FontSize="17" Margin="0,0,0,8"/>
+                        <Border Style="{StaticResource Panel}" Padding="8" Margin="0,0,0,22">
+                            <views:CellSurface x:Name="PiecePreview" Height="112" AutomationProperties.Name="Следующая фигура"/>
+                        </Border>
+                        <Grid Margin="0,0,0,20" TextElement.FontSize="17">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Счёт" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Column="1" x:Name="ScoreLabel" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Row="1" Text="Строки" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ClearedLabel" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Row="2" Text="Уровень" Margin="0,0,16,0"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LevelLabel" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <Button x:Name="PauseButton" Content="Пауза" ToolTip="Esc" Click="OnPause"/>
+                        <TextBlock x:Name="GameControlsLabel" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
 
             <Border x:Name="PauseLayer" Background="{StaticResource OverlayBrush}" Visibility="Collapsed"
@@ -102,7 +109,7 @@
                 <Border Style="{StaticResource Panel}" Width="380" Padding="24"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel>
-                        <TextBlock Text="Пауза" FontSize="32" FontWeight="Bold" Margin="0,0,0,16"/>
+                        <TextBlock Text="Пауза" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,16"/>
                         <Button x:Name="ResumeButton" Style="{StaticResource PrimaryButton}" Content="Возобновить · Esc" Click="OnResume" Margin="0,0,0,16"/>
                         <TextBlock Text="Управление" FontWeight="SemiBold" Margin="0,0,0,7"/>
                         <UniformGrid Columns="2" Margin="0,0,0,16">
@@ -118,15 +125,15 @@
             <Border x:Name="ResultsScreen" Visibility="Collapsed" Style="{StaticResource Panel}" Padding="32"
                     Width="430" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="Итог партии" FontSize="32" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Итог партии" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,8"/>
                     <UniformGrid Columns="2" Margin="0,12,0,22">
                         <StackPanel>
                             <TextBlock Text="Очки" Style="{StaticResource MutedText}"/>
-                            <TextBlock x:Name="ResultScoreLabel" FontSize="31" FontWeight="Bold"/>
+                            <TextBlock x:Name="ResultScoreLabel" FontSize="24" FontWeight="SemiBold"/>
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="Активное время" Style="{StaticResource MutedText}"/>
-                            <TextBlock x:Name="ResultTimeLabel" FontSize="31" FontWeight="Bold"/>
+                            <TextBlock x:Name="ResultTimeLabel" FontSize="24" FontWeight="SemiBold"/>
                         </StackPanel>
                     </UniformGrid>
                     <Button x:Name="ResultRecordsButton" Content="Таблица рекордов" Style="{StaticResource PrimaryButton}" Click="OnOpenRecords" Margin="0,0,0,8"/>
@@ -143,15 +150,12 @@
                     </Grid.RowDefinitions>
                     <DockPanel Margin="0,0,0,14">
                         <Button x:Name="RecordsBackButton" DockPanel.Dock="Right" Content="Назад" Click="OnCloseRecords"/>
-                        <TextBlock Text="Таблица рекордов" FontSize="28" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="Таблица рекордов" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </DockPanel>
-                    <DockPanel Grid.Row="1" Margin="0,0,0,15">
-                        <TextBlock DockPanel.Dock="Right" Text="Результаты текущего сеанса" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="RecentTab" Style="{StaticResource Choice}" GroupName="RecordTab" Content="Последние 10" MinWidth="118" Margin="0,0,8,0" Checked="OnRecordTabChanged"/>
-                            <RadioButton x:Name="TopTab" Style="{StaticResource Choice}" GroupName="RecordTab" Content="Топ-5" MinWidth="84" Checked="OnRecordTabChanged"/>
-                        </StackPanel>
-                    </DockPanel>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
+                        <RadioButton x:Name="RecentTab" Style="{StaticResource Choice}" GroupName="RecordTab" Content="Последние 10" MinWidth="118" Margin="0,0,8,0" Checked="OnRecordTabChanged"/>
+                        <RadioButton x:Name="TopTab" Style="{StaticResource Choice}" GroupName="RecordTab" Content="Топ-5" MinWidth="84" Checked="OnRecordTabChanged"/>
+                    </StackPanel>
                     <Grid Grid.Row="2">
                         <DataGrid x:Name="RecordsTable" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                                   CanUserSortColumns="False" CanUserReorderColumns="False" HeadersVisibility="Column"
