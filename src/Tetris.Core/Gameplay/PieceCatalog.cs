@@ -4,6 +4,8 @@ public interface IFigureSource
 {
     int NextType();
 
+    int NextTypeAfter(int previousType) => NextType();
+
     bool NextIsMirrored(int type) => false;
 }
 

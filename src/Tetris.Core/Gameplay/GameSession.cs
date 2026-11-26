@@ -96,7 +96,7 @@ public sealed class GameSession : IGameSession
         Right = 2
     }
 
-    public GameSession() : this(new WeightedFigureSource())
+    public GameSession() : this(new WeightedFigureSource(Random.Shared))
     {
     }
 
@@ -115,7 +115,7 @@ public sealed class GameSession : IGameSession
         ArgumentOutOfRangeException.ThrowIfGreaterThan(initialLevel, 5);
 
         var active = DrawPiece();
-        var next = DrawPiece();
+        var next = DrawPiece(active.Type);
         _board = new Board();
         _initialLevel = initialLevel;
         ClearHeldControls();
@@ -283,8 +283,8 @@ public sealed class GameSession : IGameSession
         var totalLines = Snapshot.ClearedLines + clearedLines;
         var level = Math.Min(FallIntervals.Length, _initialLevel + totalLines / LinesPerLevel);
         var next = Snapshot.NextPiece;
-        var canSpawn = next is not null && board.CanPlace(next);
-        var preview = canSpawn ? DrawPiece() : null;
+        var preview = next is not null && board.CanPlace(next) ? DrawPiece(next.Type) : null;
+        var canSpawn = preview is not null;
 
         _board = board;
         if (clearedLines > 0 || !canSpawn)
@@ -336,9 +336,9 @@ public sealed class GameSession : IGameSession
         return null;
     }
 
-    private PieceSnapshot DrawPiece()
+    private PieceSnapshot DrawPiece(int? previousType = null)
     {
-        var type = _figures.NextType();
+        var type = previousType.HasValue ? _figures.NextTypeAfter(previousType.Value) : _figures.NextType();
         var mask = PieceCatalog.GetMask(type, _figures.NextIsMirrored(type));
         var column = (GameSnapshot.BoardColumns - mask[0].Length) / 2;
         return new PieceSnapshot(type, column, 0, mask);
@@ -362,19 +362,25 @@ public sealed class GameSession : IGameSession
         return Array.AsReadOnly(rotated);
     }
 
-    private sealed class WeightedFigureSource : IFigureSource
+    private sealed class WeightedFigureSource(Random random) : IFigureSource
     {
         private static readonly int[] Tickets = Enumerable.Range(1, PieceCatalog.Count)
             .SelectMany(type => Enumerable.Repeat(type, WeightFor(type)))
             .ToArray();
 
-        public int NextType() => Tickets[Random.Shared.Next(Tickets.Length)];
+        public int NextType() => Tickets[random.Next(Tickets.Length)];
 
-        public bool NextIsMirrored(int type) => PieceCatalog.HasMirroredVariant(type) && Random.Shared.Next(2) == 1;
+        public int NextTypeAfter(int previousType)
+        {
+            var type = NextType();
+            return type == previousType ? NextType() : type;
+        }
+
+        public bool NextIsMirrored(int type) => PieceCatalog.HasMirroredVariant(type) && random.Next(2) == 1;
 
         private static int WeightFor(int type) => type switch
         {
-            8 or 9 or 10 or 12 => 2,
+            2 or 5 or 6 or 8 or 9 or 10 or 12 => 2,
             13 or 14 => 1,
             _ => 4
         };
