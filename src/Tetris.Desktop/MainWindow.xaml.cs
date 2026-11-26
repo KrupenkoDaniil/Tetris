@@ -3,9 +3,11 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Tetris.Core.Gameplay;
 using Tetris.Desktop.Application;
+using Tetris.Desktop.Presentation;
 using Tetris.Desktop.Storage;
 
 namespace Tetris.Desktop;
@@ -13,14 +15,22 @@ namespace Tetris.Desktop;
 public partial class MainWindow : Window
 {
     private static readonly CultureInfo Russian = CultureInfo.GetCultureInfo("ru-RU");
-    private readonly GameController _controller = new(new DemoGameSession(), new InMemoryRecordStore());
+    private readonly GameController _controller = new(new GameSession(), new InMemoryRecordStore());
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
+    private nint _windowHandle;
     private long _lastUpdate;
 
     public MainWindow()
     {
         InitializeComponent();
         _timer.Tick += OnTick;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _windowHandle = new WindowInteropHelper(this).Handle;
+        ComponentDispatcher.ThreadFilterMessage += OnThreadMessage;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -35,6 +45,7 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        ComponentDispatcher.ThreadFilterMessage -= OnThreadMessage;
         _timer.Stop();
         _timer.Tick -= OnTick;
     }
@@ -51,16 +62,44 @@ public partial class MainWindow : Window
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && _controller.Screen == AppScreen.Game)
-        {
-            e.Handled = true;
+        if (e.Key != Key.Escape || _controller.Screen != AppScreen.Game)
+            return;
+
+        e.Handled = true;
+        if (e.IsRepeat)
+            return;
+
+        if (_controller.Snapshot.Phase == GamePhase.Paused)
+            Resume();
+        else
             Pause();
-        }
+    }
+
+    private void OnThreadMessage(ref MSG message, ref bool handled)
+    {
+        if (handled || message.hwnd != _windowHandle || message.message != KeyboardControls.KeyDownMessage
+            || !_controller.IsGameRunning
+            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+            return;
+
+        if (KeyboardControls.GetMovement(_controller.Scheme, message.lParam) is not { } command)
+            return;
+
+        handled = true;
+        if (KeyboardControls.IsRepeat(message.lParam))
+            return;
+
+        var oldSnapshot = _controller.Snapshot;
+        var oldScreen = _controller.Screen;
+        UpdateClock();
+        _controller.ApplyMovement(command);
+        if (oldScreen != _controller.Screen || !ReferenceEquals(oldSnapshot, _controller.Snapshot))
+            Refresh(moveFocus: oldScreen != _controller.Screen);
     }
 
     private void Pause()
     {
-        if (_controller.Screen != AppScreen.Game || _controller.Snapshot.Phase != GamePhase.Running)
+        if (!_controller.IsGameRunning)
             return;
 
         UpdateClock();
@@ -68,7 +107,9 @@ public partial class MainWindow : Window
         Refresh(moveFocus: true);
     }
 
-    private void OnResume(object sender, RoutedEventArgs e)
+    private void OnResume(object sender, RoutedEventArgs e) => Resume();
+
+    private void Resume()
     {
         _controller.Resume();
         _lastUpdate = Stopwatch.GetTimestamp();
@@ -175,7 +216,7 @@ public partial class MainWindow : Window
         switch (screen)
         {
             case AppScreen.Menu:
-                MenuField.ShowBoard(snapshot, _controller.InitialLevel);
+                MenuField.ShowBoard(MenuPreview.Snapshot, _controller.InitialLevel);
                 MenuLevelLabel.Text = $"Уровень {_controller.InitialLevel}";
                 break;
             case AppScreen.Game:
@@ -184,6 +225,9 @@ public partial class MainWindow : Window
                 ScoreLabel.Text = snapshot.Score.ToString("N0", Russian);
                 LevelLabel.Text = snapshot.Level.ToString(Russian);
                 ClearedLabel.Text = snapshot.ClearedLines.ToString(Russian);
+                GameControlsLabel.Text = _controller.Scheme == ControlScheme.Arrows
+                    ? "← / → — движение\nA / D — поворот"
+                    : "J / ; — движение\nK / L — поворот";
                 break;
             case AppScreen.Results when snapshot.Result is { } result:
                 ResultScoreLabel.Text = result.Score.ToString("N0", Russian);

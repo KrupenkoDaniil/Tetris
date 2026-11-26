@@ -27,6 +27,7 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
     public ControlScheme Scheme { get; set; }
     public bool IsSoundEnabled { get; private set; } = true;
     public GameSnapshot Snapshot => session.Snapshot;
+    public bool IsGameRunning => Screen == AppScreen.Game && Snapshot.Phase == GamePhase.Running;
     public IReadOnlyList<RecordEntry> RecentRecords => records.Recent;
     public IReadOnlyList<RecordEntry> TopRecords => records.Top;
 
@@ -39,7 +40,7 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
 
     public void Pause()
     {
-        if (Screen == AppScreen.Game && Snapshot.Phase == GamePhase.Running)
+        if (IsGameRunning)
             session.Apply(GameCommand.Pause);
     }
 
@@ -67,9 +68,15 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
 
     public void ToggleSound() => IsSoundEnabled = !IsSoundEnabled;
 
+    public void ApplyMovement(GameCommand command)
+    {
+        if (IsGameRunning)
+            session.Apply(command);
+    }
+
     public void Advance(TimeSpan elapsed)
     {
-        if (Screen != AppScreen.Game || Snapshot.Phase != GamePhase.Running)
+        if (!IsGameRunning)
             return;
 
         session.Advance(elapsed);

@@ -27,7 +27,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="5,4,24,4">
                     <StackPanel VerticalAlignment="Center" MaxWidth="390">
                         <TextBlock Text="Новая партия" FontSize="42" FontWeight="Bold" Margin="0,0,0,9"/>
-                        <TextBlock Style="{StaticResource MutedText}" Text="В этом прототипе поле и итог заранее заданы. Проверь запуск, паузу и таблицу рекордов." Margin="0,0,0,24"/>
+                        <TextBlock Style="{StaticResource MutedText}" Text="В этой версии можно сдвигать и поворачивать фигуру на игровом поле." Margin="0,0,0,24"/>
                         <TextBlock Text="Начальный уровень" FontWeight="SemiBold" Margin="0,0,0,9"/>
                         <UniformGrid Columns="5" Margin="0,0,0,18">
                             <RadioButton x:Name="LevelOne" Style="{StaticResource Choice}" GroupName="Level" Tag="1" Content="1" AutomationProperties.Name="Уровень 1" Margin="0,0,6,0" Checked="OnLevelSelected"/>
@@ -39,7 +39,7 @@
                         <TextBlock Text="Управление" FontWeight="SemiBold" Margin="0,0,0,9"/>
                         <UniformGrid Columns="2" Margin="0,0,0,24">
                             <RadioButton x:Name="MenuArrows" Style="{StaticResource Choice}" GroupName="MenuScheme" Tag="Arrows" Content="Стрелки · A / D" Margin="0,0,6,0" Checked="OnSchemeSelected"/>
-                            <RadioButton x:Name="MenuHomeRow" Style="{StaticResource Choice}" GroupName="MenuScheme" Tag="HomeRow" Content="K / L · J / ;" Checked="OnSchemeSelected"/>
+                            <RadioButton x:Name="MenuHomeRow" Style="{StaticResource Choice}" GroupName="MenuScheme" Tag="HomeRow" Content="J / ; · K / L" Checked="OnSchemeSelected"/>
                         </UniformGrid>
                         <Button x:Name="StartButton" Style="{StaticResource PrimaryButton}" Content="Начать партию"
                                 MinHeight="50" Click="OnStart"/>
@@ -93,7 +93,7 @@
                         </StackPanel>
                     </Border>
                     <Button x:Name="PauseButton" Content="Пауза · Esc" Click="OnPause"/>
-                    <TextBlock Style="{StaticResource MutedText}" Text="Демонстрация завершится через 15 секунд активного времени." Margin="0,12,0,0"/>
+                    <TextBlock x:Name="GameControlsLabel" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
                 </StackPanel>
             </Grid>
 
@@ -103,11 +103,11 @@
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel>
                         <TextBlock Text="Пауза" FontSize="32" FontWeight="Bold" Margin="0,0,0,16"/>
-                        <Button x:Name="ResumeButton" Style="{StaticResource PrimaryButton}" Content="Возобновить" Click="OnResume" Margin="0,0,0,16"/>
+                        <Button x:Name="ResumeButton" Style="{StaticResource PrimaryButton}" Content="Возобновить · Esc" Click="OnResume" Margin="0,0,0,16"/>
                         <TextBlock Text="Управление" FontWeight="SemiBold" Margin="0,0,0,7"/>
                         <UniformGrid Columns="2" Margin="0,0,0,16">
                             <RadioButton x:Name="PauseArrows" Style="{StaticResource Choice}" GroupName="PauseScheme" Tag="Arrows" Content="Стрелки · A / D" Margin="0,0,6,0" Checked="OnSchemeSelected"/>
-                            <RadioButton x:Name="PauseHomeRow" Style="{StaticResource Choice}" GroupName="PauseScheme" Tag="HomeRow" Content="K / L · J / ;" Checked="OnSchemeSelected"/>
+                            <RadioButton x:Name="PauseHomeRow" Style="{StaticResource Choice}" GroupName="PauseScheme" Tag="HomeRow" Content="J / ; · K / L" Checked="OnSchemeSelected"/>
                         </UniformGrid>
                         <Button x:Name="PauseRecordsButton" Content="Таблица рекордов" Click="OnOpenRecords" Margin="0,0,0,8"/>
                         <Button x:Name="AbandonButton" Content="Выйти из партии" Click="OnReturnToMenu"/>
@@ -119,8 +119,7 @@
                     Width="430" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
                     <TextBlock Text="Итог партии" FontSize="32" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <TextBlock Style="{StaticResource MutedText}" Text="Результат демонстрационной партии" Margin="0,0,0,20"/>
-                    <UniformGrid Columns="2" Margin="0,0,0,22">
+                    <UniformGrid Columns="2" Margin="0,12,0,22">
                         <StackPanel>
                             <TextBlock Text="Очки" Style="{StaticResource MutedText}"/>
                             <TextBlock x:Name="ResultScoreLabel" FontSize="31" FontWeight="Bold"/>

@@ -30,7 +30,7 @@ public sealed class CellSurface : FrameworkElement
         InvalidateVisual();
     }
 
-    public void ShowPiece(PieceSnapshot piece, int level)
+    public void ShowPiece(PieceSnapshot? piece, int level)
     {
         _board = null;
         _preview = piece;
