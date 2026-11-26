@@ -15,6 +15,8 @@ public sealed class Board
         {
             if (!IsInside(cell.Column, cell.Row))
                 throw new ArgumentException("Клетка находится за пределами поля.", nameof(lockedCells));
+            if (_occupied[cell.Row, cell.Column])
+                throw new ArgumentException("В поле есть повторяющаяся клетка.", nameof(lockedCells));
 
             _occupied[cell.Row, cell.Column] = true;
         }
@@ -35,8 +37,31 @@ public sealed class Board
         return true;
     }
 
-    internal Board WithLockedPiece(PieceSnapshot piece) =>
-        new(LockedCells.Concat(GetCells(piece)));
+    internal (Board Field, int ClearedLines) LockAndClear(PieceSnapshot piece)
+    {
+        var cells = LockedCells.Concat(GetCells(piece)).ToArray();
+        var rowSizes = new int[GameSnapshot.BoardRows];
+        foreach (var cell in cells)
+            rowSizes[cell.Row]++;
+
+        var rowDrop = new int[GameSnapshot.BoardRows];
+        var clearedLines = 0;
+        for (var row = GameSnapshot.BoardRows - 1; row >= 0; row--)
+        {
+            if (rowSizes[row] == GameSnapshot.BoardColumns)
+                clearedLines++;
+            else
+                rowDrop[row] = clearedLines;
+        }
+
+        if (clearedLines == 0)
+            return (new Board(cells), 0);
+
+        var remaining = cells
+            .Where(cell => rowSizes[cell.Row] < GameSnapshot.BoardColumns)
+            .Select(cell => cell with { Row = cell.Row + rowDrop[cell.Row] });
+        return (new Board(remaining), clearedLines);
+    }
 
     private static IEnumerable<BoardCell> GetCells(PieceSnapshot piece)
     {

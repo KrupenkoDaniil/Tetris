@@ -27,7 +27,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="5,4,24,4">
                     <StackPanel VerticalAlignment="Center" MaxWidth="390">
                         <TextBlock Text="Новая партия" FontSize="42" FontWeight="Bold" Margin="0,0,0,9"/>
-                        <TextBlock Style="{StaticResource MutedText}" Text="Фигуры падают и закрепляются. Очистка строк и начисление очков появятся на следующем этапе." Margin="0,0,0,24"/>
+                        <TextBlock Style="{StaticResource MutedText}" Text="Заполняй строки, чтобы набирать очки. Каждые 10 очищенных строк повышают уровень." Margin="0,0,0,24"/>
                         <TextBlock Text="Начальный уровень" FontWeight="SemiBold" Margin="0,0,0,9"/>
                         <UniformGrid Columns="5" Margin="0,0,0,18">
                             <RadioButton x:Name="LevelOne" Style="{StaticResource Choice}" GroupName="Level" Tag="1" Content="1" AutomationProperties.Name="Уровень 1" Margin="0,0,6,0" Checked="OnLevelSelected"/>

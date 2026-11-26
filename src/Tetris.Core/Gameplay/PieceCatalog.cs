@@ -3,6 +3,8 @@ namespace Tetris.Core.Gameplay;
 public interface IFigureSource
 {
     int NextType();
+
+    bool NextIsMirrored(int type) => false;
 }
 
 public static class PieceCatalog
@@ -26,14 +28,24 @@ public static class PieceCatalog
         Mask(".#.", "###", ".#.")
     ];
 
+    private static readonly Dictionary<int, IReadOnlyList<string>> MirroredMasks =
+        new[] { 3, 6, 7, 8, 13 }.ToDictionary(type => type, type => Reflect(Masks[type - 1]));
+
     public static int Count => Masks.Length;
 
-    public static IReadOnlyList<string> GetMask(int type)
+    public static bool HasMirroredVariant(int type) => MirroredMasks.ContainsKey(type);
+
+    public static IReadOnlyList<string> GetMask(int type, bool mirrored = false)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(type, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(type, Count);
-        return Masks[type - 1];
+        return mirrored && MirroredMasks.TryGetValue(type, out var reflected)
+            ? reflected
+            : Masks[type - 1];
     }
 
     private static IReadOnlyList<string> Mask(params string[] rows) => Array.AsReadOnly(rows);
+
+    private static IReadOnlyList<string> Reflect(IReadOnlyList<string> rows) =>
+        Array.AsReadOnly(rows.Select(row => new string(row.Reverse().ToArray())).ToArray());
 }

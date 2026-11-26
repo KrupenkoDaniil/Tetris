@@ -61,6 +61,9 @@ public sealed class GameSession : IGameSession
     private static readonly TimeSpan LockDelay = TimeSpan.FromMilliseconds(300);
     private static readonly TimeSpan MoveRepeatDelay = TimeSpan.FromMilliseconds(150);
     private static readonly TimeSpan MoveRepeatInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan DashBonusInterval = TimeSpan.FromMilliseconds(200);
+    private const int MaximumDashBonus = 50;
+    private const int LinesPerLevel = 10;
     private static readonly TimeSpan[] FallIntervals =
     [
         TimeSpan.FromMilliseconds(900),
@@ -80,6 +83,7 @@ public sealed class GameSession : IGameSession
     private HorizontalDirection _heldDirections;
     private HorizontalDirection _repeatDirection;
     private TimeSpan _activeTime;
+    private TimeSpan _dashTimeSinceScore;
     private TimeSpan _timeSinceFallStep;
     private TimeSpan _timeOnSupport;
     private TimeSpan _timeUntilRepeat;
@@ -92,7 +96,7 @@ public sealed class GameSession : IGameSession
         Right = 2
     }
 
-    public GameSession() : this(new RandomFigureSource())
+    public GameSession() : this(new WeightedFigureSource())
     {
     }
 
@@ -110,12 +114,13 @@ public sealed class GameSession : IGameSession
         ArgumentOutOfRangeException.ThrowIfLessThan(initialLevel, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(initialLevel, 5);
 
-        var active = CreatePiece(_figures.NextType());
-        var next = CreatePiece(_figures.NextType());
+        var active = DrawPiece();
+        var next = DrawPiece();
         _board = new Board();
         _initialLevel = initialLevel;
         ClearHeldControls();
         _activeTime = TimeSpan.Zero;
+        _dashTimeSinceScore = TimeSpan.Zero;
         _timeSinceFallStep = TimeSpan.Zero;
         _timeOnSupport = TimeSpan.Zero;
         Snapshot = new GameSnapshot(GamePhase.Running, initialLevel, 0, 0, _board.LockedCells, active, next);
@@ -184,6 +189,8 @@ public sealed class GameSession : IGameSession
 
             var spent = elapsed < untilAction ? elapsed : untilAction;
             _activeTime += spent;
+            if (_isDashing && !supported)
+                _dashTimeSinceScore += spent;
             _timeSinceFallStep += spent;
             _timeOnSupport = supported ? _timeOnSupport + spent : TimeSpan.Zero;
             if (repeating)
@@ -271,12 +278,17 @@ public sealed class GameSession : IGameSession
 
     private void LockPiece(PieceSnapshot piece)
     {
-        var board = _board.WithLockedPiece(piece);
+        var (board, clearedLines) = _board.LockAndClear(piece);
+        var score = Snapshot.Score + ScoreForClear(clearedLines);
+        var totalLines = Snapshot.ClearedLines + clearedLines;
+        var level = Math.Min(FallIntervals.Length, _initialLevel + totalLines / LinesPerLevel);
         var next = Snapshot.NextPiece;
         var canSpawn = next is not null && board.CanPlace(next);
-        var preview = canSpawn ? CreatePiece(_figures.NextType()) : null;
+        var preview = canSpawn ? DrawPiece() : null;
 
         _board = board;
+        if (clearedLines > 0 || !canSpawn)
+            _dashTimeSinceScore = TimeSpan.Zero;
         _timeSinceFallStep = TimeSpan.Zero;
         _timeOnSupport = TimeSpan.Zero;
         if (!canSpawn)
@@ -285,11 +297,25 @@ public sealed class GameSession : IGameSession
         Snapshot = Snapshot with
         {
             Phase = canSpawn ? GamePhase.Running : GamePhase.Lost,
+            Level = level,
+            Score = score,
+            ClearedLines = totalLines,
             LockedCells = board.LockedCells,
             ActivePiece = canSpawn ? next : null,
             NextPiece = preview,
-            Result = canSpawn ? null : new GameResult(Snapshot.Score, _activeTime, _initialLevel)
+            Result = canSpawn ? null : new GameResult(score, _activeTime, _initialLevel)
         };
+    }
+
+    private int ScoreForClear(int clearedLines)
+    {
+        if (clearedLines == 0)
+            return 0;
+
+        var lineMultiplier = clearedLines == 4 ? 2 : 1;
+        var lineScore = 25 * (Snapshot.Level + 3) * clearedLines * lineMultiplier;
+        var dashBonus = Math.Min(MaximumDashBonus, _dashTimeSinceScore.Ticks / DashBonusInterval.Ticks);
+        return lineScore + (int)dashBonus;
     }
 
     private PieceSnapshot? FindRotation(PieceSnapshot piece, bool clockwise)
@@ -310,9 +336,10 @@ public sealed class GameSession : IGameSession
         return null;
     }
 
-    private static PieceSnapshot CreatePiece(int type)
+    private PieceSnapshot DrawPiece()
     {
-        var mask = PieceCatalog.GetMask(type);
+        var type = _figures.NextType();
+        var mask = PieceCatalog.GetMask(type, _figures.NextIsMirrored(type));
         var column = (GameSnapshot.BoardColumns - mask[0].Length) / 2;
         return new PieceSnapshot(type, column, 0, mask);
     }
@@ -335,8 +362,21 @@ public sealed class GameSession : IGameSession
         return Array.AsReadOnly(rotated);
     }
 
-    private sealed class RandomFigureSource : IFigureSource
+    private sealed class WeightedFigureSource : IFigureSource
     {
-        public int NextType() => Random.Shared.Next(1, PieceCatalog.Count + 1);
+        private static readonly int[] Tickets = Enumerable.Range(1, PieceCatalog.Count)
+            .SelectMany(type => Enumerable.Repeat(type, WeightFor(type)))
+            .ToArray();
+
+        public int NextType() => Tickets[Random.Shared.Next(Tickets.Length)];
+
+        public bool NextIsMirrored(int type) => PieceCatalog.HasMirroredVariant(type) && Random.Shared.Next(2) == 1;
+
+        private static int WeightFor(int type) => type switch
+        {
+            8 or 9 or 10 or 12 => 2,
+            13 or 14 => 1,
+            _ => 4
+        };
     }
 }
