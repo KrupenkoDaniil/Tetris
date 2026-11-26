@@ -17,7 +17,9 @@ public enum GameCommand
     MoveLeft,
     MoveRight,
     RotateCounterclockwise,
-    RotateClockwise
+    RotateClockwise,
+    StartDash,
+    StopDash
 }
 
 public readonly record struct BoardCell(int Column, int Row, int PieceType);
@@ -51,11 +53,27 @@ public interface IGameSession
 
 public sealed class GameSession : IGameSession
 {
+    private static readonly TimeSpan DashInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan LockDelay = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan[] FallIntervals =
+    [
+        TimeSpan.FromMilliseconds(900),
+        TimeSpan.FromMilliseconds(700),
+        TimeSpan.FromMilliseconds(520),
+        TimeSpan.FromMilliseconds(360),
+        TimeSpan.FromMilliseconds(240)
+    ];
+
     private static readonly (int Column, int Row)[] RotationOffsets =
         [(0, 0), (-1, 0), (1, 0), (-2, 0), (2, 0), (0, -1)];
 
     private readonly IFigureSource _figures;
     private Board _board = new();
+    private int _initialLevel;
+    private bool _isDashing;
+    private TimeSpan _activeTime;
+    private TimeSpan _timeSinceFallStep;
+    private TimeSpan _timeOnSupport;
 
     public GameSession() : this(new RandomFigureSource())
     {
@@ -78,6 +96,11 @@ public sealed class GameSession : IGameSession
         var active = CreatePiece(_figures.NextType());
         var next = CreatePiece(_figures.NextType());
         _board = new Board();
+        _initialLevel = initialLevel;
+        _isDashing = false;
+        _activeTime = TimeSpan.Zero;
+        _timeSinceFallStep = TimeSpan.Zero;
+        _timeOnSupport = TimeSpan.Zero;
         Snapshot = new GameSnapshot(GamePhase.Running, initialLevel, 0, 0, _board.LockedCells, active, next);
     }
 
@@ -86,13 +109,22 @@ public sealed class GameSession : IGameSession
         switch (command)
         {
             case GameCommand.Pause when Snapshot.Phase == GamePhase.Running:
+                _isDashing = false;
                 Snapshot = Snapshot with { Phase = GamePhase.Paused };
                 break;
             case GameCommand.Resume when Snapshot.Phase == GamePhase.Paused:
                 Snapshot = Snapshot with { Phase = GamePhase.Running };
                 break;
             case GameCommand.Abandon when Snapshot.Phase is GamePhase.Running or GamePhase.Paused:
+                _isDashing = false;
                 Snapshot = Snapshot with { Phase = GamePhase.Abandoned, ActivePiece = null, NextPiece = null };
+                break;
+            case GameCommand.StartDash when Snapshot.Phase == GamePhase.Running:
+                _isDashing = true;
+                Advance(TimeSpan.Zero);
+                break;
+            case GameCommand.StopDash:
+                _isDashing = false;
                 break;
             default:
                 if (Snapshot.Phase == GamePhase.Running && Snapshot.ActivePiece is { } active)
@@ -103,7 +135,37 @@ public sealed class GameSession : IGameSession
 
     public void Advance(TimeSpan elapsed)
     {
-        // The next development stage adds gravity and the lock timer here.
+        if (elapsed < TimeSpan.Zero)
+            return;
+
+        while (Snapshot.Phase == GamePhase.Running && Snapshot.ActivePiece is { } active)
+        {
+            var below = active with { Row = active.Row + 1 };
+            var supported = !_board.CanPlace(below);
+            var fallInterval = _isDashing ? DashInterval : FallIntervals[Snapshot.Level - 1];
+            var untilAction = supported ? LockDelay - _timeOnSupport : fallInterval - _timeSinceFallStep;
+            if (untilAction < TimeSpan.Zero)
+                untilAction = TimeSpan.Zero;
+
+            var spent = elapsed < untilAction ? elapsed : untilAction;
+            _activeTime += spent;
+            _timeSinceFallStep += spent;
+            _timeOnSupport = supported ? _timeOnSupport + spent : TimeSpan.Zero;
+            elapsed -= spent;
+
+            if (spent < untilAction)
+                return;
+
+            if (supported)
+            {
+                LockPiece(active);
+            }
+            else
+            {
+                _timeSinceFallStep = TimeSpan.Zero;
+                Snapshot = Snapshot with { ActivePiece = below };
+            }
+        }
     }
 
     private void ApplyMovement(PieceSnapshot piece, GameCommand command)
@@ -117,8 +179,37 @@ public sealed class GameSession : IGameSession
             _ => null
         };
 
-        if (candidate is not null && _board.CanPlace(candidate))
-            Snapshot = Snapshot with { ActivePiece = candidate };
+        if (candidate is null || !_board.CanPlace(candidate))
+            return;
+
+        Snapshot = Snapshot with { ActivePiece = candidate };
+        if (_board.CanPlace(candidate with { Row = candidate.Row + 1 }))
+            _timeOnSupport = TimeSpan.Zero;
+
+        Advance(TimeSpan.Zero);
+    }
+
+    private void LockPiece(PieceSnapshot piece)
+    {
+        var board = _board.WithLockedPiece(piece);
+        var next = Snapshot.NextPiece;
+        var canSpawn = next is not null && board.CanPlace(next);
+        var preview = canSpawn ? CreatePiece(_figures.NextType()) : null;
+
+        _board = board;
+        _timeSinceFallStep = TimeSpan.Zero;
+        _timeOnSupport = TimeSpan.Zero;
+        if (!canSpawn)
+            _isDashing = false;
+
+        Snapshot = Snapshot with
+        {
+            Phase = canSpawn ? GamePhase.Running : GamePhase.Lost,
+            LockedCells = board.LockedCells,
+            ActivePiece = canSpawn ? next : null,
+            NextPiece = preview,
+            Result = canSpawn ? null : new GameResult(Snapshot.Score, _activeTime, _initialLevel)
+        };
     }
 
     private PieceSnapshot? FindRotation(PieceSnapshot piece, bool clockwise)

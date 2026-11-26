@@ -26,21 +26,28 @@ public sealed class Board
 
     public bool CanPlace(PieceSnapshot piece)
     {
+        foreach (var cell in GetCells(piece))
+        {
+            if (!IsInside(cell.Column, cell.Row) || _occupied[cell.Row, cell.Column])
+                return false;
+        }
+
+        return true;
+    }
+
+    internal Board WithLockedPiece(PieceSnapshot piece) =>
+        new(LockedCells.Concat(GetCells(piece)));
+
+    private static IEnumerable<BoardCell> GetCells(PieceSnapshot piece)
+    {
         for (var row = 0; row < piece.Mask.Count; row++)
         {
             for (var column = 0; column < piece.Mask[row].Length; column++)
             {
-                if (piece.Mask[row][column] != '#')
-                    continue;
-
-                var boardColumn = piece.Column + column;
-                var boardRow = piece.Row + row;
-                if (!IsInside(boardColumn, boardRow) || _occupied[boardRow, boardColumn])
-                    return false;
+                if (piece.Mask[row][column] == '#')
+                    yield return new BoardCell(piece.Column + column, piece.Row + row, piece.Type);
             }
         }
-
-        return true;
     }
 
     private static bool IsInside(int column, int row) =>

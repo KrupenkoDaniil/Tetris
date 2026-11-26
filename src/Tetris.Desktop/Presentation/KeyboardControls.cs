@@ -6,6 +6,7 @@ namespace Tetris.Desktop.Presentation;
 internal static class KeyboardControls
 {
     public const int KeyDownMessage = 0x0100;
+    public const int KeyUpMessage = 0x0101;
     private const long PreviousKeyState = 1L << 30;
     private const int ScanCodeWithExtendedFlag = 0x1FF;
 
@@ -17,13 +18,15 @@ internal static class KeyboardControls
         K = 0x25,
         L = 0x26,
         Semicolon = 0x27,
+        Space = 0x39,
         Left = 0x14B,
-        Right = 0x14D
+        Right = 0x14D,
+        Down = 0x150
     }
 
     public static bool IsRepeat(nint keyData) => ((long)keyData & PreviousKeyState) != 0;
 
-    public static GameCommand? GetMovement(ControlScheme scheme, nint keyData)
+    public static GameCommand? GetCommand(ControlScheme scheme, nint keyData)
     {
         var key = (ScanCode)(((long)keyData >> 16) & ScanCodeWithExtendedFlag);
         return (scheme, key) switch
@@ -32,6 +35,7 @@ internal static class KeyboardControls
             (ControlScheme.Arrows, ScanCode.Right) or (ControlScheme.HomeRow, ScanCode.Semicolon) => GameCommand.MoveRight,
             (ControlScheme.Arrows, ScanCode.A) or (ControlScheme.HomeRow, ScanCode.K) => GameCommand.RotateCounterclockwise,
             (ControlScheme.Arrows, ScanCode.D) or (ControlScheme.HomeRow, ScanCode.L) => GameCommand.RotateClockwise,
+            (ControlScheme.Arrows, ScanCode.Down) or (ControlScheme.HomeRow, ScanCode.Space) => GameCommand.StartDash,
             _ => null
         };
     }

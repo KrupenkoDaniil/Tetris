@@ -77,22 +77,42 @@ public partial class MainWindow : Window
 
     private void OnThreadMessage(ref MSG message, ref bool handled)
     {
-        if (handled || message.hwnd != _windowHandle || message.message != KeyboardControls.KeyDownMessage
-            || !_controller.IsGameRunning
-            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        if (handled || message.hwnd != _windowHandle ||
+            message.message is not (KeyboardControls.KeyDownMessage or KeyboardControls.KeyUpMessage))
             return;
 
-        if (KeyboardControls.GetMovement(_controller.Scheme, message.lParam) is not { } command)
+        if (KeyboardControls.GetCommand(_controller.Scheme, message.lParam) is not { } command)
             return;
+
+        var keyDown = message.message == KeyboardControls.KeyDownMessage;
+        var repeated = KeyboardControls.IsRepeat(message.lParam);
+        if (!_controller.IsGameRunning)
+        {
+            if (_controller.Screen == AppScreen.Game && keyDown && repeated && command == GameCommand.StartDash)
+                handled = true;
+            return;
+        }
+
+        if (keyDown)
+        {
+            if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+                return;
+        }
+        else
+        {
+            if (command != GameCommand.StartDash)
+                return;
+            command = GameCommand.StopDash;
+        }
 
         handled = true;
-        if (KeyboardControls.IsRepeat(message.lParam))
+        if (keyDown && repeated)
             return;
 
         var oldSnapshot = _controller.Snapshot;
         var oldScreen = _controller.Screen;
         UpdateClock();
-        _controller.ApplyMovement(command);
+        _controller.ApplyCommand(command);
         if (oldScreen != _controller.Screen || !ReferenceEquals(oldSnapshot, _controller.Snapshot))
             Refresh(moveFocus: oldScreen != _controller.Screen);
     }
@@ -226,8 +246,8 @@ public partial class MainWindow : Window
                 LevelLabel.Text = snapshot.Level.ToString(Russian);
                 ClearedLabel.Text = snapshot.ClearedLines.ToString(Russian);
                 GameControlsLabel.Text = _controller.Scheme == ControlScheme.Arrows
-                    ? "← / → — движение\nA / D — поворот"
-                    : "J / ; — движение\nK / L — поворот";
+                    ? "← / → — движение\nA / D — поворот\n↓ (удерживать) — дэш"
+                    : "J / ; — движение\nK / L — поворот\nПробел (удерживать) — дэш";
                 break;
             case AppScreen.Results when snapshot.Result is { } result:
                 ResultScoreLabel.Text = result.Score.ToString("N0", Russian);

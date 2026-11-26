@@ -68,10 +68,13 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
 
     public void ToggleSound() => IsSoundEnabled = !IsSoundEnabled;
 
-    public void ApplyMovement(GameCommand command)
+    public void ApplyCommand(GameCommand command)
     {
-        if (IsGameRunning)
-            session.Apply(command);
+        if (!IsGameRunning)
+            return;
+
+        session.Apply(command);
+        FinishIfLost();
     }
 
     public void Advance(TimeSpan elapsed)
@@ -80,6 +83,11 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
             return;
 
         session.Advance(elapsed);
+        FinishIfLost();
+    }
+
+    private void FinishIfLost()
+    {
         if (Snapshot.Phase == GamePhase.Lost && Snapshot.Result is { } result)
         {
             records.Save(new RecordEntry(_gameId, DateTimeOffset.Now, result));
