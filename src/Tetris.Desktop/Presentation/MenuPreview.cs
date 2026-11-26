@@ -6,21 +6,19 @@ internal static class MenuPreview
 {
     public static GameSnapshot Snapshot { get; } = new(
         GamePhase.Ready, 1, 0, 0, CreateSampleField(),
-        new PieceSnapshot(2, 5, 6, PieceCatalog.GetMask(2)), null);
+        new PieceSnapshot(2, 3, 4, PieceCatalog.GetMask(2)), null);
 
     private static IReadOnlyList<BoardCell> CreateSampleField()
     {
         string[] rows =
         [
-            "............22.",
-            "...........322.",
-            "11.........332.",
-            "11........33322",
-            "112........3322",
-            "1122...44.13322",
-            "1112..444.11322",
-            "11122.443311332",
-            "11122344.311332"
+            ".......22.",
+            "11.....322",
+            "11....3332",
+            "112...3322",
+            "1122..1322",
+            "1112.41322",
+            "111224.332"
         ];
 
         var cells = new List<BoardCell>();

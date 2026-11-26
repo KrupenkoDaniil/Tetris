@@ -35,6 +35,7 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        BoardDimensionsLabel.Text = $"Поле {GameSnapshot.BoardColumns} × {GameSnapshot.BoardRows}";
         LevelOne.IsChecked = true;
         RecentTab.IsChecked = true;
         UpdateSchemeChoices();
@@ -86,9 +87,10 @@ public partial class MainWindow : Window
 
         var keyDown = message.message == KeyboardControls.KeyDownMessage;
         var repeated = KeyboardControls.IsRepeat(message.lParam);
+        var release = KeyboardControls.GetReleaseCommand(command);
         if (!_controller.IsGameRunning)
         {
-            if (_controller.Screen == AppScreen.Game && keyDown && repeated && command == GameCommand.StartDash)
+            if (_controller.Screen == AppScreen.Game && keyDown && repeated && release is not null)
                 handled = true;
             return;
         }
@@ -100,9 +102,9 @@ public partial class MainWindow : Window
         }
         else
         {
-            if (command != GameCommand.StartDash)
+            if (release is not { } released)
                 return;
-            command = GameCommand.StopDash;
+            command = released;
         }
 
         handled = true;
@@ -246,8 +248,8 @@ public partial class MainWindow : Window
                 LevelLabel.Text = snapshot.Level.ToString(Russian);
                 ClearedLabel.Text = snapshot.ClearedLines.ToString(Russian);
                 GameControlsLabel.Text = _controller.Scheme == ControlScheme.Arrows
-                    ? "← / → — движение\nA / D — поворот\n↓ (удерживать) — дэш"
-                    : "J / ; — движение\nK / L — поворот\nПробел (удерживать) — дэш";
+                    ? "← / → — сдвиг с автоповтором\nA / D — поворот\n↓ (удерживать) — дэш"
+                    : "J / ; — сдвиг с автоповтором\nK / L — поворот\nПробел (удерживать) — дэш";
                 break;
             case AppScreen.Results when snapshot.Result is { } result:
                 ResultScoreLabel.Text = result.Score.ToString("N0", Russian);

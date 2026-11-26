@@ -54,7 +54,7 @@
                         </Grid.RowDefinitions>
                         <DockPanel Margin="0,0,0,14">
                             <TextBlock DockPanel.Dock="Right" x:Name="MenuLevelLabel" Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
-                            <TextBlock Text="Поле 15 × 30" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="BoardDimensionsLabel" FontWeight="SemiBold"/>
                         </DockPanel>
                         <views:CellSurface Grid.Row="1" x:Name="MenuField" AutomationProperties.Name="Образец игрового поля"/>
                     </Grid>

@@ -31,12 +31,20 @@ internal static class KeyboardControls
         var key = (ScanCode)(((long)keyData >> 16) & ScanCodeWithExtendedFlag);
         return (scheme, key) switch
         {
-            (ControlScheme.Arrows, ScanCode.Left) or (ControlScheme.HomeRow, ScanCode.J) => GameCommand.MoveLeft,
-            (ControlScheme.Arrows, ScanCode.Right) or (ControlScheme.HomeRow, ScanCode.Semicolon) => GameCommand.MoveRight,
+            (ControlScheme.Arrows, ScanCode.Left) or (ControlScheme.HomeRow, ScanCode.J) => GameCommand.StartMoveLeft,
+            (ControlScheme.Arrows, ScanCode.Right) or (ControlScheme.HomeRow, ScanCode.Semicolon) => GameCommand.StartMoveRight,
             (ControlScheme.Arrows, ScanCode.A) or (ControlScheme.HomeRow, ScanCode.K) => GameCommand.RotateCounterclockwise,
             (ControlScheme.Arrows, ScanCode.D) or (ControlScheme.HomeRow, ScanCode.L) => GameCommand.RotateClockwise,
             (ControlScheme.Arrows, ScanCode.Down) or (ControlScheme.HomeRow, ScanCode.Space) => GameCommand.StartDash,
             _ => null
         };
     }
+
+    public static GameCommand? GetReleaseCommand(GameCommand command) => command switch
+    {
+        GameCommand.StartMoveLeft => GameCommand.StopMoveLeft,
+        GameCommand.StartMoveRight => GameCommand.StopMoveRight,
+        GameCommand.StartDash => GameCommand.StopDash,
+        _ => null
+    };
 }

@@ -16,6 +16,10 @@ public enum GameCommand
     Abandon,
     MoveLeft,
     MoveRight,
+    StartMoveLeft,
+    StopMoveLeft,
+    StartMoveRight,
+    StopMoveRight,
     RotateCounterclockwise,
     RotateClockwise,
     StartDash,
@@ -38,8 +42,8 @@ public sealed record GameSnapshot(
     PieceSnapshot? NextPiece,
     GameResult? Result = null)
 {
-    public const int BoardColumns = 15;
-    public const int BoardRows = 30;
+    public const int BoardColumns = 10;
+    public const int BoardRows = 20;
 }
 
 public interface IGameSession
@@ -55,6 +59,8 @@ public sealed class GameSession : IGameSession
 {
     private static readonly TimeSpan DashInterval = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan LockDelay = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan MoveRepeatDelay = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan MoveRepeatInterval = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan[] FallIntervals =
     [
         TimeSpan.FromMilliseconds(900),
@@ -71,9 +77,20 @@ public sealed class GameSession : IGameSession
     private Board _board = new();
     private int _initialLevel;
     private bool _isDashing;
+    private HorizontalDirection _heldDirections;
+    private HorizontalDirection _repeatDirection;
     private TimeSpan _activeTime;
     private TimeSpan _timeSinceFallStep;
     private TimeSpan _timeOnSupport;
+    private TimeSpan _timeUntilRepeat;
+
+    [Flags]
+    private enum HorizontalDirection
+    {
+        None = 0,
+        Left = 1,
+        Right = 2
+    }
 
     public GameSession() : this(new RandomFigureSource())
     {
@@ -97,7 +114,7 @@ public sealed class GameSession : IGameSession
         var next = CreatePiece(_figures.NextType());
         _board = new Board();
         _initialLevel = initialLevel;
-        _isDashing = false;
+        ClearHeldControls();
         _activeTime = TimeSpan.Zero;
         _timeSinceFallStep = TimeSpan.Zero;
         _timeOnSupport = TimeSpan.Zero;
@@ -109,15 +126,27 @@ public sealed class GameSession : IGameSession
         switch (command)
         {
             case GameCommand.Pause when Snapshot.Phase == GamePhase.Running:
-                _isDashing = false;
+                ClearHeldControls();
                 Snapshot = Snapshot with { Phase = GamePhase.Paused };
                 break;
             case GameCommand.Resume when Snapshot.Phase == GamePhase.Paused:
                 Snapshot = Snapshot with { Phase = GamePhase.Running };
                 break;
             case GameCommand.Abandon when Snapshot.Phase is GamePhase.Running or GamePhase.Paused:
-                _isDashing = false;
+                ClearHeldControls();
                 Snapshot = Snapshot with { Phase = GamePhase.Abandoned, ActivePiece = null, NextPiece = null };
+                break;
+            case GameCommand.StartMoveLeft when Snapshot.Phase == GamePhase.Running:
+                StartHorizontalMove(HorizontalDirection.Left);
+                break;
+            case GameCommand.StartMoveRight when Snapshot.Phase == GamePhase.Running:
+                StartHorizontalMove(HorizontalDirection.Right);
+                break;
+            case GameCommand.StopMoveLeft:
+                StopHorizontalMove(HorizontalDirection.Left);
+                break;
+            case GameCommand.StopMoveRight:
+                StopHorizontalMove(HorizontalDirection.Right);
                 break;
             case GameCommand.StartDash when Snapshot.Phase == GamePhase.Running:
                 _isDashing = true;
@@ -127,8 +156,9 @@ public sealed class GameSession : IGameSession
                 _isDashing = false;
                 break;
             default:
-                if (Snapshot.Phase == GamePhase.Running && Snapshot.ActivePiece is { } active)
-                    ApplyMovement(active, command);
+                if (Snapshot.Phase == GamePhase.Running && Snapshot.ActivePiece is { } active
+                    && ApplyMovement(active, command))
+                    Advance(TimeSpan.Zero);
                 break;
         }
     }
@@ -143,32 +173,82 @@ public sealed class GameSession : IGameSession
             var below = active with { Row = active.Row + 1 };
             var supported = !_board.CanPlace(below);
             var fallInterval = _isDashing ? DashInterval : FallIntervals[Snapshot.Level - 1];
-            var untilAction = supported ? LockDelay - _timeOnSupport : fallInterval - _timeSinceFallStep;
-            if (untilAction < TimeSpan.Zero)
-                untilAction = TimeSpan.Zero;
+            var untilVerticalAction = supported ? LockDelay - _timeOnSupport : fallInterval - _timeSinceFallStep;
+            if (untilVerticalAction < TimeSpan.Zero)
+                untilVerticalAction = TimeSpan.Zero;
+
+            var repeating = _repeatDirection != HorizontalDirection.None;
+            var untilAction = repeating && _timeUntilRepeat < untilVerticalAction
+                ? _timeUntilRepeat
+                : untilVerticalAction;
 
             var spent = elapsed < untilAction ? elapsed : untilAction;
             _activeTime += spent;
             _timeSinceFallStep += spent;
             _timeOnSupport = supported ? _timeOnSupport + spent : TimeSpan.Zero;
+            if (repeating)
+                _timeUntilRepeat -= spent;
             elapsed -= spent;
 
             if (spent < untilAction)
                 return;
 
-            if (supported)
+            if (spent == untilVerticalAction)
             {
-                LockPiece(active);
+                if (supported)
+                {
+                    LockPiece(active);
+                }
+                else
+                {
+                    _timeSinceFallStep = TimeSpan.Zero;
+                    Snapshot = Snapshot with { ActivePiece = below };
+                }
             }
-            else
+
+            if (_repeatDirection != HorizontalDirection.None && _timeUntilRepeat == TimeSpan.Zero
+                && Snapshot.ActivePiece is { } current)
             {
-                _timeSinceFallStep = TimeSpan.Zero;
-                Snapshot = Snapshot with { ActivePiece = below };
+                _timeUntilRepeat = MoveRepeatInterval;
+                ApplyMovement(current, MovementFor(_repeatDirection));
             }
         }
     }
 
-    private void ApplyMovement(PieceSnapshot piece, GameCommand command)
+    private void StartHorizontalMove(HorizontalDirection direction)
+    {
+        if ((_heldDirections & direction) != 0)
+            return;
+
+        _heldDirections |= direction;
+        _repeatDirection = direction;
+        _timeUntilRepeat = MoveRepeatDelay;
+        if (Snapshot.ActivePiece is { } active && ApplyMovement(active, MovementFor(direction)))
+            Advance(TimeSpan.Zero);
+    }
+
+    private void StopHorizontalMove(HorizontalDirection direction)
+    {
+        _heldDirections &= ~direction;
+        if (_repeatDirection == direction)
+        {
+            _repeatDirection = _heldDirections;
+            _timeUntilRepeat = MoveRepeatDelay;
+        }
+    }
+
+    private void ClearHeldControls()
+    {
+        _isDashing = false;
+        _heldDirections = HorizontalDirection.None;
+        _repeatDirection = HorizontalDirection.None;
+        _timeUntilRepeat = TimeSpan.Zero;
+    }
+
+    private static GameCommand MovementFor(HorizontalDirection direction) =>
+        direction == HorizontalDirection.Left ? GameCommand.MoveLeft : GameCommand.MoveRight;
+
+    private bool ApplyMovement(PieceSnapshot piece, GameCommand command)
     {
         var candidate = command switch
         {
@@ -180,13 +260,13 @@ public sealed class GameSession : IGameSession
         };
 
         if (candidate is null || !_board.CanPlace(candidate))
-            return;
+            return false;
 
         Snapshot = Snapshot with { ActivePiece = candidate };
         if (_board.CanPlace(candidate with { Row = candidate.Row + 1 }))
             _timeOnSupport = TimeSpan.Zero;
 
-        Advance(TimeSpan.Zero);
+        return true;
     }
 
     private void LockPiece(PieceSnapshot piece)
@@ -200,7 +280,7 @@ public sealed class GameSession : IGameSession
         _timeSinceFallStep = TimeSpan.Zero;
         _timeOnSupport = TimeSpan.Zero;
         if (!canSpawn)
-            _isDashing = false;
+            ClearHeldControls();
 
         Snapshot = Snapshot with
         {
