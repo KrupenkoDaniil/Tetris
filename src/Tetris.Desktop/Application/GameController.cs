@@ -35,6 +35,14 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
     public bool HasPendingRecords => _pendingRecords.Count != 0;
     public bool RecordsLoadFailed { get; private set; }
 
+    public event Action<int>? LinesCleared
+    {
+        add => session.LinesCleared += value;
+        remove => session.LinesCleared -= value;
+    }
+
+    public event Action? GameEnded;
+
     public void Start()
     {
         _gameId = Guid.NewGuid();
@@ -103,6 +111,7 @@ internal sealed class GameController(IGameSession session, IRecordStore records)
         if (Snapshot.Phase == GamePhase.Lost && Snapshot.Result is { } result)
         {
             Screen = AppScreen.Results;
+            GameEnded?.Invoke();
             _pendingRecords.Enqueue(new RecordEntry(_gameId, DateTimeOffset.Now, result));
             SavePendingRecords();
         }

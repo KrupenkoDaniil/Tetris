@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
 {
     private static readonly CultureInfo Russian = CultureInfo.GetCultureInfo("ru-RU");
     private readonly GameController _controller = new(new GameSession(), new FileRecordStore());
+    private readonly GameAudio _audio = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(30) };
     private nint _windowHandle;
     private long _lastUpdate;
@@ -23,7 +25,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(OnInterfaceButtonClick));
         _timer.Tick += OnTick;
+        _controller.LinesCleared += OnLinesCleared;
+        _controller.GameEnded += OnGameEnded;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -49,6 +54,9 @@ public partial class MainWindow : Window
         ComponentDispatcher.ThreadFilterMessage -= OnThreadMessage;
         _timer.Stop();
         _timer.Tick -= OnTick;
+        _controller.LinesCleared -= OnLinesCleared;
+        _controller.GameEnded -= OnGameEnded;
+        _audio.Dispose();
     }
 
     private void OnStart(object sender, RoutedEventArgs e)
@@ -68,6 +76,8 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+    private void OnInterfaceButtonClick(object sender, RoutedEventArgs e) => _audio.PlayClick();
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -215,7 +225,19 @@ public partial class MainWindow : Window
     private void OnToggleSound(object sender, RoutedEventArgs e)
     {
         _controller.ToggleSound();
-        RefreshSoundButton();
+        RefreshAudio();
+    }
+
+    private void OnLinesCleared(int count)
+    {
+        if (count == 4)
+            _audio.PlayAchievement();
+    }
+
+    private void OnGameEnded()
+    {
+        RefreshAudio();
+        _audio.PlayGameOver();
     }
 
     private void OnTick(object? sender, EventArgs e)
@@ -247,7 +269,7 @@ public partial class MainWindow : Window
         PauseLayer.Visibility = VisibilityFor(paused);
         ResultsScreen.Visibility = VisibilityFor(screen == AppScreen.Results);
         RecordsScreen.Visibility = VisibilityFor(screen == AppScreen.Records);
-        RefreshSoundButton();
+        RefreshAudio();
         RefreshRecordStatus(screen);
 
         switch (screen)
@@ -290,8 +312,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RefreshSoundButton() =>
+    private void RefreshAudio()
+    {
         SoundButton.Content = _controller.IsSoundEnabled ? "Звук: включён" : "Звук: выключен";
+        var snapshot = _controller.Snapshot;
+        _audio.Update(_controller.IsSoundEnabled, snapshot.Phase, snapshot.Level);
+    }
 
     private void RefreshRecordStatus(AppScreen screen)
     {

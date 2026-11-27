@@ -49,6 +49,7 @@ public sealed record GameSnapshot(
 public interface IGameSession
 {
     GameSnapshot Snapshot { get; }
+    event Action<int>? LinesCleared;
 
     void Start(int initialLevel);
     void Apply(GameCommand command);
@@ -108,6 +109,7 @@ public sealed class GameSession : IGameSession
     }
 
     public GameSnapshot Snapshot { get; private set; }
+    public event Action<int>? LinesCleared;
 
     public void Start(int initialLevel)
     {
@@ -305,6 +307,9 @@ public sealed class GameSession : IGameSession
             NextPiece = preview,
             Result = canSpawn ? null : new GameResult(score, _activeTime, _initialLevel)
         };
+
+        if (clearedLines > 0)
+            LinesCleared?.Invoke(clearedLines);
     }
 
     private int ScoreForClear(int clearedLines)
